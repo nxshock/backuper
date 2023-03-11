@@ -1,0 +1,10 @@
+FileName = "backup-go-projects"
+StopOnAnyError = false
+
+[Logger]
+MinimalLogLevel = 1
+
+[[Masks]]
+Path = "/home/user/go/src"
+MaskList = ["*.go", "*/go.mod", "*/go.sum"]
+Recursive = true
