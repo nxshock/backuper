@@ -348,7 +348,7 @@ func (b *Config) index() (*Index, error) {
 	fileMask := filepath.Join(filepath.Dir(b.filePath), b.FileName+"*"+defaultExt)
 
 	var files []string
-	err := filepath.Walk(filepath.Dir(b.filePath), func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(filepath.Dir(b.filePath), func(path string, info os.DirEntry, err error) error {
 		matched, err := filepath.Match(fileMask, path)
 		if err != nil {
 			return fmt.Errorf("filepath.Match: %v", err)
