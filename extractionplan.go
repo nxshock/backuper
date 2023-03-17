@@ -14,7 +14,7 @@ import (
 type ExtractionPlan map[string][]string // filepath - array of internal paths
 
 func (b *Backuper) extractionPlan(mask string, t time.Time) (ExtractionPlan, error) {
-	index, err := b.Config.index()
+	index, err := b.Config.index(true)
 	if err != nil {
 		return nil, fmt.Errorf("extractionPlan: %v", err)
 	}

@@ -27,7 +27,7 @@ type Mask struct {
 // FindAll возвращает индекс файлов, совпавших по маске
 func (b *Config) FindAll(mask string) (*Index, error) {
 	b.logf(LogLevelDebug, "Поиск маски %s...", mask)
-	index, err := b.index()
+	index, err := b.index(true)
 	if err != nil {
 		return nil, fmt.Errorf("index: %v", err)
 	}
@@ -50,7 +50,7 @@ func (b *Config) FindAll(mask string) (*Index, error) {
 // IncrementalBackup выполняет инкрементальный бекап.
 // В случае, если бекап выполняется впервые, выполняется полный бекап.
 func (b *Config) IncrementalBackup() error {
-	index, err := b.index()
+	index, err := b.index(false)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (b *Config) doBackup(index *Index) error {
 		suffix = "i" // Инкрементальный бекап
 	}
 
-	filePath := filepath.Join(filepath.Dir(b.filePath), b.FileName+"_"+time.Now().Local().Format("2006-01-02_15-04-05")+suffix+defaultExt)
+	filePath := filepath.Join(filepath.Dir(b.filePath), b.FileName+"_"+time.Now().Local().Format(defaulFileNameTimeFormat)+suffix+defaultExt)
 
 	var err error
 	filePath, err = filepath.Abs(filePath)
@@ -299,7 +299,7 @@ func (b *Config) addFileToTarWriter(filePath string, tarWriter *tar.Writer) erro
 
 // GetFileWithTime возвращает содержимое файла на указанную дату.
 func (b *Config) GetFileWithTime(path string, t time.Time, w io.Writer) error {
-	index, err := b.index()
+	index, err := b.index(true)
 	if err != nil {
 		return fmt.Errorf("ошибка при построении индекса: %v", err)
 	}
@@ -343,18 +343,45 @@ func (b *Config) GetFileWithTime(path string, t time.Time, w io.Writer) error {
 	return nil
 }
 
-func (b *Config) index() (*Index, error) {
+// fullIndex - true = все файлы, false = только от последнего полного
+func (b *Config) index(fullIndex bool) (*Index, error) {
 	b.logf(LogLevelInfo, "Построение индекса текущего архива из %s...", filepath.Dir(b.filePath))
-	fileMask := filepath.Join(filepath.Dir(b.filePath), b.FileName+"*"+defaultExt)
+	allFileMask := filepath.Join(filepath.Dir(b.filePath), b.FileName+"*"+defaultExt)
+	onlyFullBackupFileMask := filepath.Join(filepath.Dir(b.filePath), b.FileName+"*f"+defaultExt)
+
+	// Get last full backup name
+	lastFullBackupFileName := ""
+	err := filepath.WalkDir(filepath.Dir(b.filePath), func(path string, info os.DirEntry, err error) error {
+		matched, err := filepath.Match(onlyFullBackupFileMask, path)
+		if err != nil {
+			return fmt.Errorf("filepath.WalkDir: %v", err)
+		}
+		if !matched {
+			return nil
+		}
+
+		lastFullBackupFileName = path
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("filepath.WalkDir: %v", err)
+	}
+
+	if !fullIndex {
+		b.logf(LogLevelDebug, "Отсчёт производится от %s.", filepath.Base(lastFullBackupFileName))
+	}
 
 	var files []string
-	err := filepath.WalkDir(filepath.Dir(b.filePath), func(path string, info os.DirEntry, err error) error {
-		matched, err := filepath.Match(fileMask, path)
+	err = filepath.WalkDir(filepath.Dir(b.filePath), func(path string, info os.DirEntry, err error) error {
+		matched, err := filepath.Match(allFileMask, path)
 		if err != nil {
 			return fmt.Errorf("filepath.Match: %v", err)
 		}
-		if matched {
-			files = append(files, path)
+		if matched && path >= lastFullBackupFileName {
+			if fullIndex || path >= lastFullBackupFileName {
+				files = append(files, path)
+			}
 		}
 		return nil
 	})
@@ -409,7 +436,7 @@ func (b *Config) index() (*Index, error) {
 
 // Test осуществляет проверку архивов и возвращает первую встретившуюся ошибку
 func (b *Config) Test() error {
-	_, err := b.index() // TODO: улучшить реализацию
+	_, err := b.index(true) // TODO: улучшить реализацию
 
 	return err
 }
