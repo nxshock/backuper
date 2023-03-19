@@ -14,14 +14,14 @@ import (
 	"github.com/nxshock/progressmessage"
 )
 
-type Mask struct {
+type Pattern struct {
 	Path string
 
 	// Маски имени файла
-	FileNameMaskList []string
+	FileNamePatternList []string
 
 	// Маски пути
-	FilePathMaskList []string
+	FilePathPatternList []string
 
 	// Вкючать файлы в покаталогах
 	Recursive bool
@@ -169,7 +169,7 @@ func (b *Config) doBackup(index *Index) error {
 func (b *Config) fileList(fileNames chan File) {
 	errorCount := 0
 
-	for _, mask := range b.Masks {
+	for _, mask := range b.Patterns {
 		if mask.Recursive {
 			err := filepath.WalkDir(mask.Path, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
@@ -191,8 +191,8 @@ func (b *Config) fileList(fileNames chan File) {
 					return nil
 				}
 
-				if isFilePathMatchMasks(mask.FilePathMaskList, path) && isFileNameMatchMasks(mask.FileNameMaskList, path) {
-					if !isFilePathMatchMasks(b.GlobalExcludeFilePathMasks, path) && !isFileNameMatchMasks(b.GlobalExcludeFileNameMasks, path) {
+				if isFilePathMatchPatterns(mask.FilePathPatternList, path) && isFileNameMatchPatterns(mask.FileNamePatternList, path) {
+					if !isFilePathMatchPatterns(b.GlobalExcludeFilePathPatterns, path) && !isFileNameMatchPatterns(b.GlobalExcludeFileNamePatterns, path) {
 						info, err := os.Stat(path)
 						if err != nil {
 							errorCount++
@@ -236,8 +236,8 @@ func (b *Config) fileList(fileNames chan File) {
 				//fileName := filepath.Base(fileOrDirPath)
 				fileName := fileOrDirPath // TODO: тестирование, маска должна накладываться на путь
 
-				if isFilePathMatchMasks(mask.FilePathMaskList, fileName) && isFileNameMatchMasks(mask.FileNameMaskList, fileName) {
-					if !isFilePathMatchMasks(b.GlobalExcludeFilePathMasks, fileName) && !isFileNameMatchMasks(b.GlobalExcludeFileNameMasks, fileName) {
+				if isFilePathMatchPatterns(mask.FilePathPatternList, fileName) && isFileNameMatchPatterns(mask.FileNamePatternList, fileName) {
+					if !isFilePathMatchPatterns(b.GlobalExcludeFilePathPatterns, fileName) && !isFileNameMatchPatterns(b.GlobalExcludeFileNamePatterns, fileName) {
 						file := File{
 							SourcePath:      fileOrDirPath,
 							DestinationPath: filepath.ToSlash(fileOrDirPath),

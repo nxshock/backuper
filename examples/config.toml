@@ -6,5 +6,5 @@ MinimalLogLevel = 1
 
 [[Masks]]
 Path = "/home/user/go/src"
-FileNameMaskList = ["*.go", "go.mod", "go.sum"]
+FileNamePatternList = ["*.go", "go.mod", "go.sum"]
 Recursive = true

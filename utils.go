@@ -57,8 +57,8 @@ func stringIn(s string, ss []string) (bool, int) {
 	return false, -1
 }
 
-func isFileNameMatchMasks(masks []string, fileName string) bool {
-	for _, mask := range masks {
+func isFileNameMatchPatterns(patterns []string, fileName string) bool {
+	for _, mask := range patterns {
 		if match.Match(filepath.Base(fileName), mask) {
 			return true
 		}
@@ -67,8 +67,8 @@ func isFileNameMatchMasks(masks []string, fileName string) bool {
 	return false
 }
 
-func isFilePathMatchMasks(masks []string, fileName string) bool {
-	for _, mask := range masks {
+func isFilePathMatchPatterns(patterns []string, fileName string) bool {
+	for _, mask := range patterns {
 		if match.Match(fileName, mask) {
 			return true
 		}
