@@ -4,7 +4,7 @@ StopOnAnyError = false
 [Logger]
 MinimalLogLevel = 1
 
-[[Masks]]
+[[Patterns]]
 Path = "/home/user/go/src"
 FileNamePatternList = ["*.go", "go.mod", "go.sum"]
 Recursive = true
