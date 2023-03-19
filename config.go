@@ -19,10 +19,13 @@ type Config struct {
 	FileName string
 
 	// Маски файлов для включения в архив
-	Masks []Mask
+	Masks []*Mask
 
-	// Маски файлов/путей для исключения из всех масок
-	GlobalExcludeMasks []string
+	// Маски файлов для исключения
+	GlobalExcludeFileNameMasks []string
+
+	// Маски путей для исключения
+	GlobalExcludeFilePathMasks []string
 
 	// Логгер
 	Logger LoggerConfig
@@ -69,6 +72,12 @@ func LoadConfig(filePath string) (*Config, error) {
 	}
 
 	config.logger = Logger{logger: log.New(os.Stderr, "", 0), MinimalLogLevel: config.Logger.MinimalLogLevel}
+
+	for _, mask := range config.Masks {
+		if len(mask.FilePathMaskList) == 0 {
+			mask.FilePathMaskList = []string{"*"}
+		}
+	}
 
 	configFilePath, err := filepath.Abs(filePath)
 	if err != nil {

@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
+
+	"github.com/tidwall/match"
 )
 
 /*func winPathToRelative(s string) string {
@@ -52,4 +55,24 @@ func stringIn(s string, ss []string) (bool, int) {
 	}
 
 	return false, -1
+}
+
+func isFileNameMatchMasks(masks []string, fileName string) bool {
+	for _, mask := range masks {
+		if match.Match(filepath.Base(fileName), mask) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isFilePathMatchMasks(masks []string, fileName string) bool {
+	for _, mask := range masks {
+		if match.Match(fileName, mask) {
+			return true
+		}
+	}
+
+	return false
 }

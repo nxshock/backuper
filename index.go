@@ -69,7 +69,7 @@ func (index *Index) GetFilesLocation(mask string, t time.Time) ([]File, error) {
 	var files2 []File
 
 	for fileName := range index.Files {
-		if isFileMatchMasks([]string{mask}, fileName) {
+		if isFilePathMatchMasks([]string{mask}, fileName) {
 			files := index.Files[fileName]
 
 			file := files[0]

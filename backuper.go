@@ -18,7 +18,10 @@ type Mask struct {
 	Path string
 
 	// Маски имени файла
-	MaskList []string
+	FileNameMaskList []string
+
+	// Маски пути
+	FilePathMaskList []string
 
 	// Вкючать файлы в покаталогах
 	Recursive bool
@@ -166,9 +169,9 @@ func (b *Config) doBackup(index *Index) error {
 func (b *Config) fileList(fileNames chan File) {
 	errorCount := 0
 
-	for _, v := range b.Masks {
-		if v.Recursive {
-			err := filepath.WalkDir(v.Path, func(path string, d fs.DirEntry, err error) error {
+	for _, mask := range b.Masks {
+		if mask.Recursive {
+			err := filepath.WalkDir(mask.Path, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					errorCount++
 					b.logf(LogLevelCritical, "Ошибка при поиске файлов: %v\n", err)
@@ -182,15 +185,14 @@ func (b *Config) fileList(fileNames chan File) {
 					return nil
 				}
 
-				if !v.Recursive && filepath.Dir(path) != v.Path {
+				path = filepath.ToSlash(path)
+
+				if !mask.Recursive && filepath.Dir(path) != mask.Path {
 					return nil
 				}
 
-				// fileName := filepath.Base(path)
-				fileName := path // TODO: тестирование - маска действует на весь путь
-
-				if isFileMatchMasks(v.MaskList, fileName) {
-					if !isFileMatchMasks(b.GlobalExcludeMasks, fileName) {
+				if isFilePathMatchMasks(mask.FilePathMaskList, path) && isFileNameMatchMasks(mask.FileNameMaskList, path) {
+					if !isFilePathMatchMasks(b.GlobalExcludeFilePathMasks, path) && !isFileNameMatchMasks(b.GlobalExcludeFileNameMasks, path) {
 						info, err := os.Stat(path)
 						if err != nil {
 							errorCount++
@@ -213,7 +215,7 @@ func (b *Config) fileList(fileNames chan File) {
 				b.logf(LogLevelCritical, "Ошибка при получении списка файлов: %v\n", err)
 			}
 		} else {
-			allFilesAndDirs, err := filepath.Glob(filepath.Join(v.Path, "*"))
+			allFilesAndDirs, err := filepath.Glob(filepath.Join(mask.Path, "*"))
 			if err != nil {
 				errorCount++
 				b.logf(LogLevelCritical, "Ошибка при получении списка файлов: %v\n", err)
@@ -234,8 +236,8 @@ func (b *Config) fileList(fileNames chan File) {
 				//fileName := filepath.Base(fileOrDirPath)
 				fileName := fileOrDirPath // TODO: тестирование, маска должна накладываться на путь
 
-				if isFileMatchMasks(v.MaskList, fileName) {
-					if !isFileMatchMasks(b.GlobalExcludeMasks, fileName) {
+				if isFilePathMatchMasks(mask.FilePathMaskList, fileName) && isFileNameMatchMasks(mask.FileNameMaskList, fileName) {
+					if !isFilePathMatchMasks(b.GlobalExcludeFilePathMasks, fileName) && !isFileNameMatchMasks(b.GlobalExcludeFileNameMasks, fileName) {
 						file := File{
 							SourcePath:      fileOrDirPath,
 							DestinationPath: filepath.ToSlash(fileOrDirPath),
@@ -252,16 +254,6 @@ func (b *Config) fileList(fileNames chan File) {
 	}
 
 	close(fileNames)
-}
-
-func isFileMatchMasks(masks []string, fileName string) bool {
-	for _, mask := range masks {
-		if match, _ := filepath.Match(filepath.ToSlash(mask), filepath.ToSlash(fileName)); match {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (b *Config) addFileToTarWriter(filePath string, tarWriter *tar.Writer) error {
