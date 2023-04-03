@@ -8,11 +8,6 @@ import (
 	"github.com/tidwall/match"
 )
 
-/*func winPathToRelative(s string) string {
-	ss := strings.Split(s, string(os.PathSeparator))
-	return filepath.Join(ss[1:]...)
-}*/
-
 func sizeToApproxHuman(s int64) string {
 	t := []struct {
 		Name string

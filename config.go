@@ -2,17 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/tidwall/match"
 
 	"github.com/BurntSushi/toml"
 )
-
-type Backuper struct {
-	Config *Config
-}
 
 type Config struct {
 	// Имя файлов бекапа без расширения
@@ -27,19 +25,13 @@ type Config struct {
 	// Маски путей для исключения
 	GlobalExcludeFilePathPatterns []string
 
-	// Логгер
-	Logger LoggerConfig
-	logger Logger
-
 	// Останавливать обработку при любой ошибке
 	StopOnAnyError bool
 
-	filePath string
-}
+	// Уровень логирования
+	LogLevel LogLevel
 
-type LoggerConfig struct {
-	Name            string
-	MinimalLogLevel LogLevel
+	filePath string
 }
 
 func (config *Config) Save(filepath string) error {
@@ -71,8 +63,6 @@ func LoadConfig(filePath string) (*Config, error) {
 		return nil, fmt.Errorf("decode file: %v", err)
 	}
 
-	config.logger = Logger{logger: log.New(os.Stderr, "", 0), MinimalLogLevel: config.Logger.MinimalLogLevel}
-
 	for _, mask := range config.Patterns {
 		if len(mask.FilePathPatternList) == 0 {
 			mask.FilePathPatternList = []string{"*"}
@@ -89,9 +79,9 @@ func LoadConfig(filePath string) (*Config, error) {
 }
 
 // planChan возвращает канал, в который засылает список файлов для добавления/обновления
-func (b *Config) planChan(index *Index) chan File {
-	allFilesChan := make(chan File, 64) // TODO: размер очереди?
-	addFilesChan := make(chan File, 64) // TODO: размер очереди?
+func (b *Config) planChan(index Index) chan FileInfo {
+	allFilesChan := make(chan FileInfo, 64) // TODO: размер очереди?
+	addFilesChan := make(chan FileInfo, 64) // TODO: размер очереди?
 
 	go func() { b.fileList(allFilesChan) }()
 
@@ -103,13 +93,13 @@ func (b *Config) planChan(index *Index) chan File {
 				continue
 			}
 
-			existingFile, exists := index.Files[file.DestinationPath]
+			existingFile, exists := index[file.filePath]
 			if !exists {
 				addFilesChan <- file
 				continue
 			}
 
-			if file.Info.ModTime().Truncate(time.Second).After(existingFile.Latest().Info.ModTime().Truncate(time.Second)) {
+			if file.ModificationTime.Truncate(time.Second).After(existingFile.Latest().ModificationTime.Truncate(time.Second)) {
 				addFilesChan <- file
 				continue
 			}
@@ -119,4 +109,24 @@ func (b *Config) planChan(index *Index) chan File {
 	}()
 
 	return addFilesChan
+}
+
+// FindAll возвращает индекс файлов, совпавших по маске
+func (b *Config) FindAll(pattern string) (Index, error) {
+	index, err := b.index(true)
+	if err != nil {
+		return nil, fmt.Errorf("index: %v", err)
+	}
+
+	result := make(Index)
+
+	for path, info := range index {
+		if match.Match(strings.ToLower(path), pattern) {
+			for _, historyItem := range info {
+				result.AddFile(path, historyItem.ArchiveFileName, historyItem.ModificationTime)
+			}
+		}
+	}
+
+	return result, nil
 }

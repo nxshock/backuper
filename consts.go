@@ -9,4 +9,7 @@ const (
 
 	// Формат времени для файлов
 	defaulFileNameTimeFormat = "2006-01-02_15-04-05"
+
+	//
+	indexFileName = "index.csv.zst"
 )

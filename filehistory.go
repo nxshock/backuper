@@ -1,14 +1,14 @@
 package main
 
 // FileHistory содержит историю изменения файла
-type FileHistory []File
+type FileHistory []FileInfo
 
 // Latest возвращает информацию о последней версии файла
-func (fileHistory FileHistory) Latest() File {
+func (fileHistory FileHistory) Latest() FileInfo {
 	file := fileHistory[0]
 
 	for i := 1; i < len(fileHistory); i++ {
-		if fileHistory[i].Info.ModTime().After(file.Info.ModTime()) {
+		if fileHistory[i].ModificationTime.After(file.ModificationTime) {
 			file = fileHistory[i]
 		}
 	}
@@ -24,5 +24,5 @@ func (fileHistory FileHistory) Swap(i, j int) {
 }
 
 func (fileHistory FileHistory) Less(i, j int) bool {
-	return fileHistory[i].Info.ModTime().Before(fileHistory[j].Info.ModTime())
+	return fileHistory[i].ModificationTime.Before(fileHistory[j].ModificationTime)
 }

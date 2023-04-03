@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,22 +12,12 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) <= 1 {
+	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
 	}
 
 	switch os.Args[1] {
-	case "i":
-		config, err := LoadConfig(os.Args[2])
-		if err != nil {
-			log.Fatalln("ошибка при чтении конфига:", err)
-		}
-
-		err = config.IncrementalBackup()
-		if err != nil {
-			config.fatalln("ошибка инкрементального бекапа:", err)
-		}
 	case "f":
 		config, err := LoadConfig(os.Args[2])
 		if err != nil {
@@ -37,47 +26,62 @@ func main() {
 
 		err = config.FullBackup()
 		if err != nil {
-			config.fatalln("ошибка полного бекапа:", err)
+			log.Fatalln(err)
+		}
+	case "i":
+		config, err := LoadConfig(os.Args[2])
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = config.IncrementalBackup()
+		if err != nil {
+			log.Fatalln(err)
 		}
 	case "s":
 		config, err := LoadConfig(os.Args[2])
 		if err != nil {
-			log.Fatalln("ошибка при чтении конфига:", err)
+			log.Fatalln("read config error:", err)
 		}
-		config.logf(LogLevelProgress, "Поиск файлов по маске %s...\n", os.Args[3])
 
-		config.logf(LogLevelProgress, "Создание индекса...\n")
 		idx, err := config.FindAll(os.Args[3])
 		if err != nil {
-			config.fatalln("ошибка поиска:", err)
+			config.fatalln("search error:", err)
 		}
-		config.logf(LogLevelProgress, "Создание индекса завершено.\n")
 
-		fmt.Println(idx)
+		idx.ViewFileVersions(os.Stdout)
 	case "r":
 		config, err := LoadConfig(os.Args[2])
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		/*idx, err := config.FindAll(os.Args[3])
-		if err != nil {
-			config.fatalln(err)
-		}*/
-
-		t, err := time.Parse("02.01.2006 15:04", os.Args[4])
-		if err != nil {
-			config.fatalln("ошибка парсинга времени:", err)
+		var t time.Time
+		switch len(os.Args[4]) {
+		case len("02.01.2006"):
+			t, err = time.Parse("02.01.2006 15:04", os.Args[4])
+			if err != nil {
+				config.fatalln("time parse error:", err)
+			}
+		case len("02.01.2006 15:04"):
+			t, err = time.Parse("02.01.2006 15:04", os.Args[4])
+			if err != nil {
+				config.fatalln("time parse error:", err)
+			}
+		case len("02.01.2006 15:04:05"):
+			t, err = time.Parse("02.01.2006 15:04:05", os.Args[4])
+			if err != nil {
+				config.fatalln("time parse error:", err)
+			}
+		default:
+			config.fatalln(`wrong time format, must be ["DD.MM.YYYY", "DD.MM.YYYY hh:mm", "DD.MM.YYYY hh:mm:ss"]`)
 		}
 
-		//
-
-		b := &Backuper{Config: config}
-		plan, err := b.extractionPlan(os.Args[3], t)
+		plan, err := config.extractionPlan(os.Args[3], t)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		err = b.extract(plan, os.Args[5])
+		err = config.extract(plan, os.Args[5])
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -86,11 +90,11 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		err = config.Test()
+
+		_, err = config.index(true)
 		if err != nil {
-			log.Fatalln("ошибка тестирования:", err)
+			log.Fatalln(err)
 		}
-		log.Println("Ошибок нет.")
 	default:
 		printUsage()
 	}
@@ -99,10 +103,10 @@ func main() {
 func printUsage() {
 	bin := filepath.Base(os.Args[0])
 
-	fmt.Fprintf(os.Stderr, "Usage:\n")
-	fmt.Fprintf(os.Stderr, "%s i <config file path> - do incremental backup\n", bin)
-	fmt.Fprintf(os.Stderr, "%s f <config file path> - do full backup\n", bin)
-	fmt.Fprintf(os.Stderr, "%s s <config file path> <mask> - search file(s) in backup\n", bin)
-	fmt.Fprintf(os.Stderr, "%s r <config file path> <mask> <dd.mm.yyyy hh:mm> <path> - recover file(s) from backup\n", bin)
-	fmt.Fprintf(os.Stderr, "%s t <config file path> - test archive for errors\n", bin)
+	log.Print("Usage:\n")
+	log.Printf("%s i <config file path> - do incremental backup\n", bin)
+	log.Printf("%s f <config file path> - do full backup\n", bin)
+	log.Printf("%s s <config file path> <mask> - search file(s) in backup\n", bin)
+	log.Printf("%s r <config file path> <mask> <dd.mm.yyyy hh:mm> <path> - recover file(s) from backup\n", bin)
+	log.Printf("%s t <config file path> - test archive for errors\n", bin)
 }

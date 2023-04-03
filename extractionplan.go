@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,8 +14,8 @@ import (
 
 type ExtractionPlan map[string][]string // filepath - array of internal paths
 
-func (b *Backuper) extractionPlan(mask string, t time.Time) (ExtractionPlan, error) {
-	index, err := b.Config.index(true)
+func (b *Config) extractionPlan(mask string, t time.Time) (ExtractionPlan, error) {
+	index, err := b.index(true)
 	if err != nil {
 		return nil, fmt.Errorf("extractionPlan: %v", err)
 	}
@@ -27,15 +28,16 @@ func (b *Backuper) extractionPlan(mask string, t time.Time) (ExtractionPlan, err
 	plan := make(ExtractionPlan)
 
 	for _, file := range files {
-		plan[file.ArchiveFile] = append(plan[file.ArchiveFile], file.DestinationPath)
+		plan[file.ArchiveFileName] = append(plan[file.ArchiveFileName], file.filePath)
 	}
 
 	return plan, nil
 }
 
-func (b *Backuper) extract(extractionPlan ExtractionPlan, toDir string) error {
+func (b *Config) extract(extractionPlan ExtractionPlan, toDir string) error {
 	for archiveFile, files := range extractionPlan {
-		f, err := os.Open(archiveFile)
+		log.Printf("Восстановление из архивного файла %s...", filepath.Join(filepath.Dir(b.filePath), archiveFile))
+		f, err := os.Open(filepath.Join(filepath.Dir(b.filePath), archiveFile))
 		if err != nil {
 			return fmt.Errorf("ошибка при чтении файла архива: %v", err)
 		}
@@ -58,6 +60,7 @@ func (b *Backuper) extract(extractionPlan ExtractionPlan, toDir string) error {
 				return fmt.Errorf("ошибка при чтении tar-содержимого: %v", err)
 			}
 			if inArr, i := stringIn(header.Name, files); inArr {
+				log.Printf("Восстановление файла %s...", header.Name)
 				resultFilePath := filepath.Join(toDir, clean(header.Name))
 				os.MkdirAll(filepath.Dir(resultFilePath), 0644)
 				f, err := os.Create(resultFilePath)
