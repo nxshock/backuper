@@ -32,7 +32,7 @@ func sizeToApproxHuman(s int64) string {
 	return fmt.Sprintf("%d B", s)
 }
 
-// clean убирает невозможнын комбинации символов из пути
+// clean убирает невозможные комбинации символов из пути
 func clean(s string) string {
 	s = strings.ReplaceAll(s, ":", "")
 	s = strings.ReplaceAll(s, `\\`, `\`)
