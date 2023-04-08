@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/tidwall/match"
 )
@@ -70,4 +72,17 @@ func isFilePathMatchPatterns(patterns []string, fileName string) bool {
 	}
 
 	return false
+}
+
+func parseTime(s string) (time.Time, error) {
+	switch len(s) {
+	case len("02.01.2006"):
+		return time.ParseInLocation("02.01.2006", s, time.Local)
+	case len("02.01.2006 15:04"):
+		return time.ParseInLocation("02.01.2006 15:04", s, time.Local)
+	case len("02.01.2006 15:04:05"):
+		return time.ParseInLocation("02.01.2006 15:04:05", s, time.Local)
+	}
+
+	return time.Time{}, errors.New("unknown time format")
 }

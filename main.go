@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 func init() {
@@ -56,25 +55,9 @@ func main() {
 			log.Fatalln(err)
 		}
 
-		var t time.Time
-		switch len(os.Args[4]) {
-		case len("02.01.2006"):
-			t, err = time.Parse("02.01.2006 15:04", os.Args[4])
-			if err != nil {
-				config.fatalln("time parse error:", err)
-			}
-		case len("02.01.2006 15:04"):
-			t, err = time.Parse("02.01.2006 15:04", os.Args[4])
-			if err != nil {
-				config.fatalln("time parse error:", err)
-			}
-		case len("02.01.2006 15:04:05"):
-			t, err = time.Parse("02.01.2006 15:04:05", os.Args[4])
-			if err != nil {
-				config.fatalln("time parse error:", err)
-			}
-		default:
-			config.fatalln(`wrong time format, must be ["DD.MM.YYYY", "DD.MM.YYYY hh:mm", "DD.MM.YYYY hh:mm:ss"]`)
+		t, err := parseTime(os.Args[4])
+		if err != nil {
+			config.fatalln(err)
 		}
 
 		plan, err := config.extractionPlan(os.Args[3], t)
