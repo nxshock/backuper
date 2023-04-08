@@ -62,7 +62,8 @@ func (index Index) Save(fileName string) error {
 
 	enc, err := zstd.NewWriter(f, zstd.WithEncoderLevel(zstd.SpeedBestCompression))
 	if err != nil {
-		f.Close() // TODO: удалить частичный файл?
+		f.Close()
+		os.Remove(fileName)
 		return err
 	}
 
@@ -82,7 +83,8 @@ func (index Index) Save(fileName string) error {
 			err := csvWriter.Write([]string{fileName, historyItem.ArchiveFileName, strconv.Itoa(int(historyItem.ModificationTime.Unix()))})
 			if err != nil {
 				enc.Close()
-				f.Close() // TODO: удалить частичный файл?
+				f.Close()
+				os.Remove(fileName)
 				return err
 			}
 		}
@@ -91,13 +93,15 @@ func (index Index) Save(fileName string) error {
 	csvWriter.Flush()
 	if err := csvWriter.Error(); err != nil {
 		enc.Close()
-		f.Close() // TODO: удалить частичный файл?
+		f.Close()
+		os.Remove(fileName)
 		return err
 	}
 
 	err = enc.Close()
 	if err != nil {
-		f.Close() // TODO: удалить частичный файл?
+		f.Close()
+		os.Remove(fileName)
 		return err
 	}
 
