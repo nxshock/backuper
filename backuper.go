@@ -46,6 +46,8 @@ func (b *Config) fileList(fileNames chan FileInfo) {
 							if b.StopOnAnyError {
 								return fmt.Errorf("get file info error: %v", err)
 							}
+							
+							return nil
 						}
 
 						file := FileInfo{
